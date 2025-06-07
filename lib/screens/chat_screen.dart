@@ -3,6 +3,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:cita_medica/services/ia_service.dart';
 import 'package:cita_medica/services/cita_service.dart';
 import 'package:cita_medica/services/whatsapp_service.dart';
+import 'package:cita_medica/services/email_service.dart';
 
 class ChatScreen extends StatefulWidget {
   const ChatScreen({super.key});
@@ -42,7 +43,8 @@ class _ChatScreenState extends State<ChatScreen> {
       final prefs = await SharedPreferences.getInstance();
       final pacienteId = prefs.getInt('paciente_id') ?? 0;
       final pacienteNombre = prefs.getString('paciente_nombre') ?? '';
-      final telefono = prefs.getString('paciente_telefono') ?? ''; // debe guardarse en login
+      final telefono =
+          prefs.getString('paciente_telefono') ?? ''; // debe guardarse en login
 
       final fecha = respuesta['fecha'];
       final hora = respuesta['hora'];
@@ -55,20 +57,26 @@ class _ChatScreenState extends State<ChatScreen> {
         setState(() {
           _mensajes.add({
             'role': 'assistant',
-            'text': '❌ No encontré un doctor para la especialidad "$especialidad".',
+            'text':
+                '❌ No encontré un doctor para la especialidad "$especialidad".',
           });
           _isLoading = false;
         });
         return;
       }
 
-      final disponible = await CitaService().verificarDisponibilidadMedico(idMedico, fecha, hora);
+      final disponible = await CitaService().verificarDisponibilidadMedico(
+        idMedico,
+        fecha,
+        hora,
+      );
 
       if (!disponible) {
         setState(() {
           _mensajes.add({
             'role': 'assistant',
-            'text': '⏰ El doctor de $especialidad ya tiene una cita a esa hora. ¿Deseas otro horario?',
+            'text':
+                '⏰ El doctor de $especialidad ya tiene una cita a esa hora. ¿Deseas otro horario?',
           });
           _isLoading = false;
         });
@@ -84,15 +92,31 @@ class _ChatScreenState extends State<ChatScreen> {
       );
 
       if (creada) {
-        if (telefono.isNotEmpty) {
-          await WhatsAppService().enviarConfirmacion(
-            to: '591$telefono',
-            paciente: pacienteNombre,
-            fecha: fecha,
-            hora: hora,
-            motivo: motivo,
-            especialista: especialidad,
-          );
+        try {
+          if (telefono.isNotEmpty) {
+            await WhatsAppService().enviarConfirmacion(
+              to: '591$telefono',
+              paciente: pacienteNombre,
+              fecha: fecha,
+              hora: hora,
+              motivo: motivo,
+              especialista: especialidad,
+            );
+          }
+
+          final email = prefs.getString('paciente_email') ?? '';
+          if (email.isNotEmpty) {
+            await EmailService().enviarConfirmacion(
+              toEmail: email,
+              toName: pacienteNombre,
+              date: fecha,
+              time: hora,
+              motivo: motivo,
+              especialidad: especialidad,
+            );
+          }
+        } catch (e) {
+          debugPrint('❌ Error al enviar confirmaciones: $e');
         }
 
         setState(() {
@@ -113,7 +137,9 @@ class _ChatScreenState extends State<ChatScreen> {
 
       setState(() => _isLoading = false);
     } else {
-      final texto = respuesta?['respuesta'] ?? '❌ No entendí tu mensaje. ¿Podés ser más claro?';
+      final texto =
+          respuesta?['respuesta'] ??
+          '❌ No entendí tu mensaje. ¿Podés ser más claro?';
       setState(() {
         _mensajes.add({'role': 'assistant', 'text': texto});
         _isLoading = false;
@@ -164,7 +190,9 @@ class _ChatScreenState extends State<ChatScreen> {
                 Expanded(
                   child: TextField(
                     controller: _controller,
-                    decoration: const InputDecoration(hintText: 'Escribe tu mensaje...'),
+                    decoration: const InputDecoration(
+                      hintText: 'Escribe tu mensaje...',
+                    ),
                     onSubmitted: (_) => _enviarMensaje(),
                   ),
                 ),
