@@ -19,6 +19,8 @@ class AuthService {
     await prefs.setString('jwt_token', token);
     await prefs.setInt('paciente_id', paciente.id);
     await prefs.setString('paciente_nombre', paciente.nombre);
+    await prefs.setString('paciente_email', paciente.email);
+    await prefs.setString('paciente_telefono', paciente.telefonoContacto);
 
     return true;
   }

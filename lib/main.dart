@@ -5,6 +5,7 @@ import 'screens/home_screen.dart';
 import 'screens/chat_screen.dart';
 
 Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
   await dotenv.load(fileName: ".env");
   runApp(const CitaMedicaApp());
 }

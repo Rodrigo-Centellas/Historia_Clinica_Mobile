@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:cita_medica/services/ia_service.dart';
 import 'package:cita_medica/services/cita_service.dart';
+import 'package:cita_medica/services/whatsapp_service.dart';
 
 class ChatScreen extends StatefulWidget {
   const ChatScreen({super.key});
@@ -40,6 +41,8 @@ class _ChatScreenState extends State<ChatScreen> {
         respuesta.containsKey('especialidad')) {
       final prefs = await SharedPreferences.getInstance();
       final pacienteId = prefs.getInt('paciente_id') ?? 0;
+      final pacienteNombre = prefs.getString('paciente_nombre') ?? '';
+      final telefono = prefs.getString('paciente_telefono') ?? ''; // debe guardarse en login
 
       final fecha = respuesta['fecha'];
       final hora = respuesta['hora'];
@@ -80,21 +83,35 @@ class _ChatScreenState extends State<ChatScreen> {
         idMedico,
       );
 
-      setState(() {
-        if (creada) {
+      if (creada) {
+        if (telefono.isNotEmpty) {
+          await WhatsAppService().enviarConfirmacion(
+            to: '591$telefono',
+            paciente: pacienteNombre,
+            fecha: fecha,
+            hora: hora,
+            motivo: motivo,
+            especialista: especialidad,
+          );
+        }
+
+        setState(() {
           _mensajes.add({
             'role': 'assistant',
             'text':
                 '✅ Tu cita ha sido registrada para el $fecha a las $hora con el doctor de $especialidad.\nMotivo: $motivo',
           });
-        } else {
+        });
+      } else {
+        setState(() {
           _mensajes.add({
             'role': 'assistant',
             'text': '❌ Hubo un error al registrar la cita. Intenta nuevamente.',
           });
-        }
-        _isLoading = false;
-      });
+        });
+      }
+
+      setState(() => _isLoading = false);
     } else {
       final texto = respuesta?['respuesta'] ?? '❌ No entendí tu mensaje. ¿Podés ser más claro?';
       setState(() {
