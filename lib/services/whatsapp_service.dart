@@ -17,12 +17,19 @@ class WhatsAppService {
     required String motivo,
     required String especialista,
   }) async {
+    if (sid == null || token == null || from == null || templateId == null) {
+      debugPrint("❌ Error: Variables de entorno no configuradas correctamente.");
+      debugPrint( "credenciales $sid $token $from $templateId");
+      return;
+     
+    }
+
     final url = Uri.parse('https://api.twilio.com/2010-04-01/Accounts/$sid/Messages.json');
 
-    final body = {
+    final body = <String, String>{
       'To': 'whatsapp:$to',
-      'From': from,
-      'ContentSid': templateId,
+      'From': from!,
+      'ContentSid': templateId!,
       'ContentVariables': jsonEncode({
         '1': paciente,
         '2': fecha,
